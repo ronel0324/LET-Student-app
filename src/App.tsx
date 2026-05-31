@@ -36,7 +36,7 @@ const LABELS = ['A', 'B', 'C', 'D'];
 type TabView = 'dashboard' | 'progress' | 'history' | 'badges';
 type AppView = TabView | 'difficulty' | 'quiz' | 'results' | 'study-list' | 'study-read';
 
-// ─── APP ──────────────────────────────────────────────────────────────────────
+// APP COMPONENT 
 const AppInner: React.FC = () => {
   const [view, setView]           = useState<AppView>('dashboard');
   const [activeTab, setActiveTab] = useState<TabView>('dashboard');
@@ -49,7 +49,50 @@ const AppInner: React.FC = () => {
   const goTab = (tab: TabView) => { setActiveTab(tab); setView(tab); };
   const showTabs = ['dashboard', 'progress', 'history', 'badges'].includes(view);
 
+  const [notif, setNotif] = useState<{ title: string; message: string } | null>(null);
+
+  useEffect(() => {
+    const unsub = onSnapshot(doc(db, "notifications", "latest"), (snap) => {
+      if (!snap.exists()) return;
+      const data = snap.data();
+
+      const lastSeen = localStorage.getItem('lastSeenNotifVersion');
+      if (data.version > Number(lastSeen ?? 0)) {
+        setNotif({ title: data.title, message: data.message });
+        localStorage.setItem('lastSeenNotifVersion', String(data.version));
+      }
+    });
+    return () => unsub();
+  }, []);
+
   return (
+    <>
+    {notif && (
+      <div style={{
+        position: 'fixed', top: 16, left: 16, right: 16, zIndex: 9999,
+        background: '#2d2d2d', color: '#fff',
+        borderRadius: '20px', padding: '16px 20px',
+        boxShadow: '0 8px 32px rgba(0,0,0,0.25)',
+        display: 'flex', alignItems: 'flex-start', gap: '12px',
+      }}>
+        <span style={{ fontSize: '22px' }}>🔔</span>
+        <div style={{ flex: 1 }}>
+          <div style={{ fontWeight: 900, fontSize: '14px', marginBottom: '2px' }}>
+            {notif.title}
+          </div>
+          <div style={{ fontSize: '12px', opacity: 0.75, fontWeight: 600 }}>
+            {notif.message}
+          </div>
+        </div>
+        <button
+          onClick={() => setNotif(null)}
+          style={{ background: 'none', border: 'none', color: '#fff',
+            fontSize: '18px', cursor: 'pointer', opacity: 0.6, padding: '0 4px' }}
+        >
+          ✕
+        </button>
+      </div>
+    )}
     <IonApp>
       <IonHeader className="ion-no-border">
         <IonToolbar style={{ '--background': '#FFFFFF', '--border-width': '0' } as any}>
@@ -169,10 +212,11 @@ const AppInner: React.FC = () => {
         </IonFooter>
       )}
     </IonApp>
+  </>
   );
 };
 
-// ─── DASHBOARD ────────────────────────────────────────────────────────────────
+// DASHBOARD
 const DashboardView: React.FC<{ onStart: (category: string) => void; onStudy: (category: string) => void }> = ({ onStart, onStudy }) => {
   const [stats, setStats] = useState<{ totalAttempts: number; avgScore: number }>({ totalAttempts: 0, avgScore: 0 });
   const [catStats, setCatStats] = useState<Record<string, { attempts: number; avg: string; best: string }>>({});
@@ -209,7 +253,6 @@ const DashboardView: React.FC<{ onStart: (category: string) => void; onStudy: (c
           setCatStats(built);
         }
 
-        // Check which categories have questions available
         const qSnap = await getDocs(collection(db, 'questions'));
         const cats = new Set<string>();
         qSnap.docs.forEach(d => {
@@ -314,7 +357,7 @@ const CategoryCard = ({ title, subtitle, color, emoji, stats, onStart, onStudy, 
   </div>
 );
 
-// ─── PROGRESS VIEW ────────────────────────────────────────────────────────────
+// PROGRESS VIEW
 const ProgressView: React.FC = () => {
   const [categoryStats, setCategoryStats] = useState<Array<{
     name: string; tag: string; attempts: number; avg: number; best: number; lastDate: string;
@@ -478,7 +521,7 @@ const StrengthBox: React.FC<{ title: string; color: string; bg: string; border: 
   </div>
 );
 
-// ─── STUDY LIST VIEW ─────────────────────────────────────────────────────────
+// STUDY LIST VIEW
 const StudyListView: React.FC<{
   category: string;
   onSelect: (module: any) => void;
@@ -554,7 +597,7 @@ const StudyListView: React.FC<{
   );
 };
 
-// ─── STUDY READ VIEW ─────────────────────────────────────────────────────────
+// STUDY READ VIEW
 const StudyReadView: React.FC<{
   module: any;
   onBack: () => void;
@@ -655,7 +698,7 @@ const StudyReadView: React.FC<{
   </div>
 );
 
-// ─── DIFFICULTY VIEW ─────────────────────────────────────────────────────────
+// DIFFICULTY VIEW
 const DIFFICULTIES = [
   { key: 'all',    label: 'All Levels',  desc: 'Mix of easy, medium, and hard',  emoji: '🎯', color: '#4F62E5' },
   { key: 'easy',   label: 'Easy',        desc: 'Great for beginners',             emoji: '🟢', color: '#22A06B' },
@@ -772,7 +815,7 @@ const ExamTimer: React.FC<{
   );
 };
 
-// ─── QUIZ VIEW ────────────────────────────────────────────────────────────────
+// QUIZ VIEW
 const QuizView: React.FC<{ 
   category: string;
   difficulty: string;
@@ -788,7 +831,6 @@ const QuizView: React.FC<{
   const [selected, setSelected] = useState<(number | null)[]>([]);
   const selectedRef = useRef<(number | null)[]>([]);
 
-  // Keep ref in sync with state so ExamTimer's onTimeUp always sees latest answers
   const handleSelect = (i: number) => {
     const updated = [...selectedRef.current];
     updated[current] = i;
@@ -797,7 +839,6 @@ const QuizView: React.FC<{
   };
 
   const [secondsPerQuestion, setSecondsPerQuestion] = useState(30);
-  const QUIZ_DURATION_SECONDS = secondsPerQuestion * (quizQuestions.length || 10);
   const handleTimeUp = () => onFinish(selectedRef.current, quizQuestions);
 
   useEffect(() => {
@@ -822,25 +863,17 @@ const QuizView: React.FC<{
   }, [category]);
 
   useEffect(() => {
-    // ─── SYNC LOGIC ───────────────────────────────────────────────────────────
-    // 1. Check local version vs Firestore version
-    // 2. If newer version available, download published_content/latest
-    // 3. Save to localStorage for offline use
-    // 4. Always use locally cached questions (works offline after first sync)
+    // SYNC LOGIC
 
     const STORAGE_KEY = 'let_published_content';
     const VERSION_KEY = 'let_content_version';
 
-    // Web admin saves options as optionA/optionB/optionC/optionD (strings)
-    // and answer as 'A'/'B'/'C'/'D' (string).
-    // This normalizes both formats into options[] array and answer as index number.
     const normalizeQuestion = (d: any, id: string) => {
       let options: string[];
       if (Array.isArray(d.options) && d.options.length > 0) {
-        // Already an array (future-proof)
+
         options = d.options;
       } else {
-        // Web admin format: optionA, optionB, optionC, optionD
         options = [
           d.optionA ?? 'Option A',
           d.optionB ?? 'Option B',
@@ -853,7 +886,6 @@ const QuizView: React.FC<{
       if (typeof d.answer === 'number') {
         answer = d.answer;
       } else if (typeof d.answer === 'string') {
-        // Web admin saves 'A', 'B', 'C', 'D'
         answer = ['A', 'B', 'C', 'D'].indexOf(d.answer.toUpperCase());
         if (answer === -1) answer = 0;
       } else {
@@ -925,7 +957,6 @@ const QuizView: React.FC<{
           selectedRef.current = Array(data.length).fill(null);
           setSelected(Array(data.length).fill(null));
         } else {
-          // published_content/latest doesn't exist yet — fallback to direct Firestore query
           const q = query(collection(db, 'questions'), where('category', '==', category));
           const snap = await getDocs(q);
           const allData = snap.docs.map(docSnap => ({ ...docSnap.data(), id: docSnap.id }));
@@ -947,16 +978,13 @@ const QuizView: React.FC<{
       }
     };
 
-    // Load from cache immediately (instant, works offline)
     const hasCached = loadFromCache();
     if (hasCached) setLoading(false);
 
-    // Then check if a newer version is available from Firestore
     const checkVersion = async () => {
       try {
         const syncSnap = await getDoc(doc(db, 'settings', 'sync'));
         if (!syncSnap.exists()) {
-          // No sync doc yet — just fetch directly
           if (!hasCached) await fetchAndCache();
           return;
         }
@@ -964,11 +992,10 @@ const QuizView: React.FC<{
         const localVersion = parseInt(localStorage.getItem(VERSION_KEY) ?? '0');
 
         if (remoteVersion > localVersion || !hasCached) {
-          // Newer version available — download and cache
           await fetchAndCache();
         }
       } catch {
-        // Offline — already loaded from cache above
+        // Offline — already loaded
         if (!hasCached) {
           setError('No internet connection and no cached content available.');
           setLoading(false);
@@ -978,7 +1005,6 @@ const QuizView: React.FC<{
 
     checkVersion();
 
-    // Listen for sync signal — kapag nag-Sync Now ang admin, mag-a-update agad
     const unsubscribe = onSnapshot(doc(db, 'settings', 'sync'), (snap) => {
       if (!snap.exists()) return;
       const remoteVersion = snap.data().version ?? 1;
@@ -1168,7 +1194,7 @@ const QuizView: React.FC<{
   );
 };
 
-// ─── RESULTS VIEW ─────────────────────────────────────────────────────────────
+// RESULTS VIEW
 const ResultsView: React.FC<{
   answers: (number | null)[];
   questions: any[];
@@ -1191,10 +1217,8 @@ const ResultsView: React.FC<{
       ? 'Good job! Room for improvement.'
       : 'Keep practicing!';
 
-  // Get category from first question if available
   const category = questions[0]?.category || 'Unknown';
 
-  // Save result to Firestore once on mount (useRef guard prevents double-save in React StrictMode)
   const savedRef = useRef(false);
   useEffect(() => {
     if (total === 0 || savedRef.current) return;
@@ -1203,10 +1227,8 @@ const ResultsView: React.FC<{
     const now = new Date();
     const dateStr = now.toLocaleString();
 
-    // Save to 'attempts' (read by web admin dashboard)
     const uid = (auth as any)?.currentUser?.uid;
 
-    // Save to 'attempts' (read by web admin dashboard)
     addDoc(collection(db, 'attempts'), {
       uid,
       category,
@@ -1217,7 +1239,6 @@ const ResultsView: React.FC<{
       timestamp: serverTimestamp(),
     }).catch(err => console.error('Failed to save attempt:', err));
 
-    // Save to 'results' (read by student app analytics)
     addDoc(collection(db, 'results'), {
       uid,
       category,
@@ -1227,7 +1248,6 @@ const ResultsView: React.FC<{
       date: dateStr,
       timestamp: serverTimestamp(),
     }).catch(err => console.error('Failed to save result:', err));
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (
@@ -1279,7 +1299,7 @@ const ResultsView: React.FC<{
   );
 };
 
-// ─── HISTORY VIEW ─────────────────────────────────────────────────────────────
+// HISTORY VIEW
 const FILTERS = [
   'All',
   'General Education',
@@ -1532,7 +1552,7 @@ const HistoryView: React.FC = () => {
   );
 };
 
-// ─── BADGES VIEW ──────────────────────────────────────────────────────────────
+// BADGES VIEW
 const BADGES = [
   {
     title: 'Century Club',
@@ -1578,18 +1598,12 @@ const BadgesView: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
 
   const computeUnlocked = (rows: any[]) => {
-    // rows from `results` collection
-    // Expected fields from ResultsView/Results saving:
-    // - category: string
-    // - score: number
-    // - timestamp: Firestore timestamp (toDate)
 
     const totalAttempts = rows.length;
 
     const byCategoryScores: Record<string, number[]> = {};
     const byCategoryHighCount: Record<string, number> = {};
 
-    // For streak: bucket unique local dates where there is at least 1 result
     const dayKeySet = new Set<string>();
 
     rows.forEach((r) => {
@@ -1612,20 +1626,14 @@ const BadgesView: React.FC = () => {
 
     const unlockedMap: Record<string, boolean> = {};
 
-    // Century Club: complete 100 quiz questions
-    // We interpret as number of result rows >= 100.
     unlockedMap['Century Club'] = totalAttempts >= 100;
 
-    // Exam Ace: score 95% or higher in Exam Simulation mode
     unlockedMap['Exam Ace'] = (byCategoryScores['Exam Simulation'] ?? []).some((s) => s >= 95);
 
-    // GenEd Master / ProfEd Expert: score 90% or higher in 5 quizzes
     unlockedMap['GenEd Master'] = (byCategoryHighCount['General Education'] ?? 0) >= 5;
     unlockedMap['Specialization Star'] = (byCategoryHighCount['Major/Specialization'] ?? 0) >= 5;
     unlockedMap['ProfEd Expert'] = (byCategoryHighCount['Professional Education'] ?? 0) >= 5;
 
-    // 7-Day Streak: at least 7 unique days with attempts.
-    // (If you later add true consecutive-day logic, we can refine this.)
     unlockedMap['7-Day Streak'] = dayKeySet.size >= 7;
 
     return unlockedMap;

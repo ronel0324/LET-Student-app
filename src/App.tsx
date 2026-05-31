@@ -584,6 +584,60 @@ const StudyReadView: React.FC<{
       <p style={{ fontSize: '14px', color: '#444', lineHeight: 1.8, margin: 0, whiteSpace: 'pre-wrap' }}>{module.content}</p>
     </div>
 
+    {module.pdfUrl && (
+  <div
+    style={{
+      background: '#fff',
+      borderRadius: '24px',
+      padding: '20px',
+      border: '1px solid rgba(255,255,255,0.8)',
+      textAlign: 'center',
+    }}
+  >
+    <div style={{ fontSize: '28px', marginBottom: '8px' }}>📄</div>
+
+    <h3
+      style={{
+        fontSize: '15px',
+        fontWeight: 900,
+        color: '#2d2d2d',
+        margin: '0 0 6px',
+      }}
+    >
+      Study PDF Available
+    </h3>
+
+    <p
+      style={{
+        fontSize: '12px',
+        color: '#aaa',
+        margin: '0 0 14px',
+        fontWeight: 600,
+      }}
+    >
+      Download or view the PDF study material.
+    </p>
+
+    <a
+      href={module.pdfUrl}
+      target="_blank"
+      rel="noopener noreferrer"
+      style={{
+        display: 'inline-block',
+        background: '#E25A53',
+        color: '#fff',
+        padding: '12px 28px',
+        borderRadius: '14px',
+        fontWeight: 900,
+        fontSize: '13px',
+        textDecoration: 'none',
+      }}
+    >
+      Open PDF
+    </a>
+  </div>
+)}
+
     {/* Practice Quiz CTA */}
     <div style={{ background: 'linear-gradient(135deg, #4F62E5, #7B8FF5)', borderRadius: '24px', padding: '24px 20px', textAlign: 'center' }}>
       <div style={{ fontSize: '28px', marginBottom: '8px' }}>✏️</div>

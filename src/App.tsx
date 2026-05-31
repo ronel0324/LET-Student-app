@@ -864,14 +864,12 @@ const QuizView: React.FC<{
 
   useEffect(() => {
     // SYNC LOGIC
-
     const STORAGE_KEY = 'let_published_content';
     const VERSION_KEY = 'let_content_version';
 
     const normalizeQuestion = (d: any, id: string) => {
       let options: string[];
       if (Array.isArray(d.options) && d.options.length > 0) {
-
         options = d.options;
       } else {
         options = [
@@ -938,14 +936,12 @@ const QuizView: React.FC<{
         setLoading(true);
         setError(null);
 
-        // Download published_content/latest (synced by web admin)
         const publishedSnap = await getDoc(doc(db, 'published_content', 'latest'));
 
         if (publishedSnap.exists()) {
           const publishedData = publishedSnap.data();
           const allQuestions: any[] = publishedData.questions ?? [];
 
-          // Save to localStorage for offline use
           localStorage.setItem(STORAGE_KEY, JSON.stringify(allQuestions));
           localStorage.setItem(VERSION_KEY, String(publishedData.version ?? 1));
 
@@ -970,7 +966,6 @@ const QuizView: React.FC<{
         }
       } catch (err) {
         console.error('Error fetching questions:', err);
-        // Offline — try loading from cache
         const loaded = loadFromCache();
         if (!loaded) setError('No internet connection and no cached content available.');
       } finally {
